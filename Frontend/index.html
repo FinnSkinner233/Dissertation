@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="style.css">
+    <script src="Script.js"></script>
+</head>
+<body>
+    <div id="Container">
+        <form id ="content" action="/encode" method="post" enctype="multipart/form-data">
+            <label for="video">Please enter a video file</label>
+            <input type="file" name="video" accept="video/*" required>
+            <br>
+
+            <video id="videoPreview" width="400px" controls style="display: none;"></video><br>
+
+            <label for="audio">Please enter a audio file</label>
+            <input type="file" name="audio" accept="audio/*" required>
+            <br>
+
+            <button>Submit</button>
+        </form>
+    </div>
+</body>
+</html>
