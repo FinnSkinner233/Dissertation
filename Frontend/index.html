@@ -7,18 +7,20 @@
 <body>
     <div id="Container">
         <form id ="content" action="/encode" method="post" enctype="multipart/form-data">
-            <label for="video">Please enter a video file</label>
-            <input type="file" name="video" accept="video/*" required>
-            <br>
 
-            <video id="videoPreview" width="400px" controls style="display: none;"></video><br>
-
-            <label for="audio">Please enter a audio file</label>
-            <input type="file" name="audio" accept="audio/*" required>
+            <label for="videoInput">Please enter a video file</label>
+            <input type="file" id="videoInput" accept="video/*" required>
             <br>
+            <video id="videoPreview" width="400" height="320" controls style="display: none;"></video><br>
+
+            <label for="audioInput">Please enter a audio file</label>
+            <input type="file" id="audioInput" accept="audio/*" required>
+            <br>
+            <audio id="audioPreview" controls style="display: none;"></audio>
 
             <button>Submit</button>
         </form>
+        <script src="Script.js"></script>
     </div>
 </body>
 </html>
