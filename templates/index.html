@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="style.css">
-    <script src="Script.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div id="Container">
         <form id ="content" action="/encode" method="post" enctype="multipart/form-data">
 
             <label for="videoInput">Please enter a video file</label>
-            <input type="file" id="videoInput" accept="video/*" required>
+            <input type="file" id="videoInput" name="video" accept="video/*" required>
             <br>
             <video id="videoPreview" width="400" height="320" controls style="display: none;"></video><br>
 
             <label for="audioInput">Please enter a audio file</label>
-            <input type="file" id="audioInput" accept="audio/*" required>
+            <input type="file" id="audioInput" name ="audio" accept="audio/*" required>
+            <br>
             <br>
             <audio id="audioPreview" controls style="display: none;"></audio>
-
+            <br>
             <button>Submit</button>
         </form>
-        <script src="Script.js"></script>
+        <script src="{{ url_for('static', filename='Script.js') }}"></script>
     </div>
 </body>
 </html>
