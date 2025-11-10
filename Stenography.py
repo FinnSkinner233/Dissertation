@@ -2,6 +2,7 @@ from flask import Flask, request, redirect, render_template
 from cryptography.fernet import Fernet
 import cv2
 import os
+import numpy
 
 app = Flask(__name__)
 
@@ -43,9 +44,9 @@ def encode():
     #convert the audio data into binary
     binary_audio = ''.join(format(byte,'08b') for byte in encrypted_audio)
 
+    counter = 0
+    total_bits = len(binary_audio)
 
-    #create and array to store the frames of the video
-    video_frames = []
     #read the frames of the video
     #ret is a boolean determined if there is a frame to read
     #frame is the data of the frame
@@ -53,14 +54,28 @@ def encode():
         ret, frame = video_capture.read()
         if not ret:
             break
-        video_frames.append(frame)
+        
+        flat_frame = frame.flatten()
+        for i in range(len(flat_frame)):
+            if counter < total_bits:
+                flat_frame[i] = (flat_frame[i] & numpy.uint8(254)) | int(binary_audio[counter])
+                counter += 1
+            else:
+                break
 
+        new_frame = flat_frame.reshape(frame.shape)
+
+        if counter >= total_bits:
+            break
+
+        
     video_capture.release()
     os.remove(video_path)
 
+
+
     #confirms the audio and video files have been stored
     return "Files have been uploaded sucsesfully"
-
 
 
 if __name__ == '__main__':
