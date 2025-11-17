@@ -1,9 +1,8 @@
-from flask import Flask, request, redirect, render_template
+from flask import Flask, request, redirect, render_template, url_for
 from cryptography.fernet import Fernet
 import cv2
 import os
 import numpy
-import random
 
 app = Flask(__name__)
 
@@ -12,6 +11,11 @@ app = Flask(__name__)
 
 def index():
     return render_template('index.html')
+
+@app.route('/decode', methods=['POST'])
+
+def decode():
+    pass
 
 @app.route('/encode', methods=['POST'])
 
@@ -54,11 +58,7 @@ def encode():
     width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out_video = cv2.VideoWriter('output.avi',fourcc,fps,(width,height))
-
-    #generate a key to determine pixle placement
-    Rseed = int.from_bytes(key[:4],'big')
-    random.seed(Rseed)
+    out_video = cv2.VideoWriter('static/output.avi',fourcc,fps,(width,height))
 
     #read the frames of the video
     #ret is a boolean determined if there is a frame to read
@@ -73,11 +73,9 @@ def encode():
             num_pixles = flat_frame.size
 
             indices = list(range(num_pixles))
-            random.shuffle(indices)
             for i in range(len(flat_frame)):
                 if counter < total_bits:
-                    idx = indices[i]
-                    flat_frame[idx] = (flat_frame[idx] & numpy.uint8(254)) | int(binary_audio[counter])
+                    flat_frame[i] = (flat_frame[i] & numpy.uint8(254)) | int(binary_audio[counter])
                     counter += 1
             new_frame = flat_frame.reshape(frame.shape)
         else:
@@ -94,8 +92,11 @@ def encode():
 
 
     #confirms the audio and video files have been stored
-    return "Files have been uploaded sucsesfully"
+    return redirect(url_for('download_video'))
 
+@app.route("/video")
+def download_video():
+    return render_template("video.html", video_path = "/static/output.avi")
 
 if __name__ == '__main__':
     app.run(debug=True)

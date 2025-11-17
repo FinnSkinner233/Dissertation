@@ -5,22 +5,39 @@
 </head>
 <body>
     <div id="Container">
-        <form id ="content" action="/encode" method="post" enctype="multipart/form-data">
+        <div id="header">
+            <button id = "Encodebtn" type = "button">Encode</button>
+            <button id = "Decodebtn" type = "button">Decode</button>
+        </div>
+        <br>
+        <div id="Page_content">
+            <div id = "encode">
+                <form id ="encode_content" action="/encode" method="post" enctype="multipart/form-data">
 
-            <label for="videoInput">Please enter a video file</label>
-            <input type="file" id="videoInput" name="video" accept="video/*" required>
-            <br>
-            <video id="videoPreview" width="400" height="320" controls style="display: none;"></video><br>
+                    <label for="videoInput">Please enter a video file to encode</label>
+                    <input type="file" id="videoInput" name="video" accept="video/*" required>
+                    <br>
+                    <video id="videoPreview" width="400" height="320" controls style="display: none;"></video><br>
 
-            <label for="audioInput">Please enter a audio file</label>
-            <input type="file" id="audioInput" name ="audio" accept="audio/*" required>
-            <br>
-            <br>
-            <audio id="audioPreview" controls style="display: none;"></audio>
-            <br>
-            <button>Submit</button>
-        </form>
-        <script src="{{ url_for('static', filename='Script.js') }}"></script>
+                    <label for="audioInput">Please enter a audio file</label>
+                    <input type="file" id="audioInput" name ="audio" accept="audio/*" required>
+                    <br>
+                    <br>
+                    <audio id="audioPreview" controls style="display: none;"></audio>
+                    <br>
+                    <button>Submit</button>
+                </form>
+                
+            </div>
+
+            <div id = "decode">
+                <form id="decode_content" aciton ="/decode" method="post" enctype="multipart/form-data">
+                    <lable for="videoInput">Please enter a video file to Decode</lable>
+                    <input type="file" id="videoInput" name ="video" accept="video/*" required>
+                </form>
+            </div>
+        </div>
     </div>
+<script src="{{ url_for('static', filename='Script.js') }}"></script>
 </body>
 </html>

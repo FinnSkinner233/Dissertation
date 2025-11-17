@@ -27,3 +27,22 @@ document.getElementById("audioInput").addEventListener("change", function(event)
     }
     
 });
+
+var encodeButton = document.getElementById('Encodebtn');
+var decodeButton = document.getElementById('Decodebtn');
+
+var encodeSection = document.getElementById('encode');
+var decodeSection = document.getElementById('decode');
+
+encodeSection.style.display = 'block';
+decodeSection.style.display = 'none';
+
+encodeButton.addEventListener('click',function(){
+    encodeSection.style.display = 'block';
+    decodeSection.style.display = 'none';   
+})
+
+decodeButton.addEventListener('click',function(){
+    encodeSection.style.display = 'none';
+    decodeSection.style.display = 'block';   
+})
