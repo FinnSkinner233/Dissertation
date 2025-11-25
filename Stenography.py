@@ -28,16 +28,8 @@ def decode():
     video_path = "temp_video.avi"
     video_file.save(video_path)
 
-    #convert to raw
-    raw_video = "raw_decode.avi"
-    subprocess.run([
-    "ffmpeg", "-y", "-i", video_path,
-    "-pix_fmt", "bgr24", "-vcodec", "rawvideo",
-    "-f", "avi", "-vtag", "DIB", raw_video
-    ], check=True)
 
-    video_capture = cv2.VideoCapture(raw_video, cv2.CAP_FFMPEG)
-    video_capture.set(cv2.CAP_PROP_CONVERT_RGB, 0)
+    video_capture = cv2.VideoCapture(video_path)
 
     #make sure the video is captured
     if not video_capture.isOpened():
@@ -47,48 +39,50 @@ def decode():
     audio_list = []
     bits_needed = 32
     #extrac the first 32 bits containing the audio length
-    while len(audio_list) < bits_needed:
-        ret, frame = video_capture.read()
-        if not ret:
-            break
-        
-        flat_frame = frame.flatten(order="C")
-        lsb_value = (flat_frame & 1)
-        remaining_bits = bits_needed - len(audio_list)
-        audio_list.extend(int(b) for b in lsb_value[:remaining_bits])
 
+    ret, frame = video_capture.read()
+    if not ret:
+        return "No frames WOMP WOMP"
+        
+    flat_frame = frame.flatten(order="C")
+    lsb_value = (flat_frame & 1)
+    audio_list.extend(int(b) for b in lsb_value[:32])
+
+    #get the rest of the relevant bits from the frame
 
     audio_data_length = 0
     bit_string = ''.join(str(b) for b in audio_list)
     audio_data_length = int(bit_string, 2)
-
     total_bits_needed = audio_data_length * 8
+
+    payload_bits = [int(b) for b in lsb_value[32:]]
+
+    print(audio_data_length)
+    print(bit_string)
 
 
     #extract the rest of the bits based on the total_bits_needed
 
-    current_byte = 0
-    bits_collected = 0
-    audio_bytes = bytearray()
-
-    while bits_collected < total_bits_needed:
+    while len(payload_bits) < total_bits_needed:
         ret, frame = video_capture.read()
         if not ret:
             break
-
         flat_frame = frame.flatten(order="C")
         lsb_value = (flat_frame & 1)
+        payload_bits.extend(int(b) for b in lsb_value)
+        
 
-        for bit in lsb_value:
-            current_byte = (current_byte << 1) | int(bit)
-            bits_collected += 1
-
-            if bits_collected % 8 == 0:
-                audio_bytes.append(current_byte)
-                current_byte = 0
-            
-            if bits_collected >= total_bits_needed:
-                break
+    #convert the bits into bytes
+    audio_bytes = bytearray()
+    current_byte = 0
+    count = 0
+    for bit in payload_bits[:total_bits_needed]:  # trim to exact length
+        current_byte = (current_byte << 1) | bit
+        count += 1
+        if count == 8:
+            audio_bytes.append(current_byte)
+            current_byte = 0
+            count = 0
 
     video_capture.release()
     os.remove(video_path)
@@ -129,21 +123,8 @@ def encode():
     video_file.save(video_path)
     
 
-    #convert video to raw video
-    raw_video = "raw_input.avi"
 
-    subprocess.run([
-    "ffmpeg", "-y", "-i", video_path,
-    "-pix_fmt", "bgr24", "-vcodec", "rawvideo",
-    "-f", "avi", "-vtag", "DIB", raw_video
-    ], check=True)
-
-    if not os.path.exists(raw_video):
-        return "FFmpeg FAILED — raw video was not created. Check the console output."
-
-
-    video_capture = cv2.VideoCapture(raw_video, cv2.CAP_FFMPEG)
-    video_capture.set(cv2.CAP_PROP_CONVERT_RGB, 0)
+    video_capture = cv2.VideoCapture(video_path)
 
     #make sure the video is captured
     if not video_capture.isOpened():
@@ -165,6 +146,7 @@ def encode():
     
     audio_length = len(encrypted_audio)
     audio_length_bits = format(audio_length, '032b')
+    print (audio_length_bits)
 
 
     #convert the audio data into binary
@@ -179,7 +161,7 @@ def encode():
     fps = video_capture.get(cv2.CAP_PROP_FPS)
     width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fourcc = 0
+    fourcc = cv2.VideoWriter_fourcc(*'FFV1')
     out_video = cv2.VideoWriter('static/output.avi',fourcc,fps,(width,height))
 
     #read the frames of the video
@@ -207,7 +189,6 @@ def encode():
     video_capture.release()
     out_video.release()
     os.remove(video_path)
-    os.remove(raw_video)
 
 
 
@@ -220,3 +201,4 @@ def download_video():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
