@@ -3,13 +3,15 @@ from cryptography.fernet import Fernet
 import cv2
 import os
 import numpy
+import subprocess
 
 app = Flask(__name__)
 
+key = None
+
 @app.route("/")
 def index():
-    global key
-    key = Fernet.generate_key()
+
     return render_template('index.html')
 
 @app.route('/decode', methods=['POST'])
@@ -25,7 +27,17 @@ def decode():
     #save and capture the video
     video_path = "temp_video.avi"
     video_file.save(video_path)
-    video_capture = cv2.VideoCapture(video_path)
+
+    #convert to raw
+    raw_video = "raw_decode.avi"
+    subprocess.run([
+    "ffmpeg", "-y", "-i", video_path,
+    "-pix_fmt", "bgr24", "-vcodec", "rawvideo",
+    "-f", "avi", "-vtag", "DIB", raw_video
+    ], check=True)
+
+    video_capture = cv2.VideoCapture(raw_video, cv2.CAP_FFMPEG)
+    video_capture.set(cv2.CAP_PROP_CONVERT_RGB, 0)
 
     #make sure the video is captured
     if not video_capture.isOpened():
@@ -33,7 +45,6 @@ def decode():
     
 
     audio_list = []
-
     bits_needed = 32
     #extrac the first 32 bits containing the audio length
     while len(audio_list) < bits_needed:
@@ -41,32 +52,52 @@ def decode():
         if not ret:
             break
         
-        lsb_value = (frame & 1).ravel()
+        flat_frame = frame.flatten(order="C")
+        lsb_value = (flat_frame & 1)
         remaining_bits = bits_needed - len(audio_list)
-        audio_list.extend(lsb_value[:remaining_bits])
-
-    audio_data_length = int(''.join(map(str,audio_list)),2)
-    total_bits_needed = 32 + audio_data_length * 8
+        audio_list.extend(int(b) for b in lsb_value[:remaining_bits])
 
 
-    while len(audio_list) < total_bits_needed:
+    audio_data_length = 0
+    bit_string = ''.join(str(b) for b in audio_list)
+    audio_data_length = int(bit_string, 2)
+
+    total_bits_needed = audio_data_length * 8
+
+
+    #extract the rest of the bits based on the total_bits_needed
+
+    current_byte = 0
+    bits_collected = 0
+    audio_bytes = bytearray()
+
+    while bits_collected < total_bits_needed:
         ret, frame = video_capture.read()
         if not ret:
             break
 
-        lsb_value = (frame & 1).ravel()
-        remaining = total_bits_needed - len(audio_list)
-        audio_list.extend(lsb_value[:remaining])
+        flat_frame = frame.flatten(order="C")
+        lsb_value = (flat_frame & 1)
+
+        for bit in lsb_value:
+            current_byte = (current_byte << 1) | int(bit)
+            bits_collected += 1
+
+            if bits_collected % 8 == 0:
+                audio_bytes.append(current_byte)
+                current_byte = 0
+            
+            if bits_collected >= total_bits_needed:
+                break
 
     video_capture.release()
-    audio_bits = audio_list[32:total_bits_needed]
+    os.remove(video_path)
 
-    joined_bits = ''.join(map(str, audio_bits))
-    audio_bytes = int(joined_bits,2).to_bytes(audio_data_length, 'big')
-
+    print("Decoded :", list(audio_bytes[:50]))
 
     furnet = Fernet(key)
-    decrypted_audio_data = furnet.decrypt(audio_bytes)
+    print ("check")
+    decrypted_audio_data = furnet.decrypt(bytes(audio_bytes))
 
     audio_output = "static/decrypted.mp3"
 
@@ -80,22 +111,45 @@ def decode():
 @app.route('/encode', methods=['POST'])
 
 def encode():
+    global key
+    key = Fernet.generate_key()
     #storing both the audio and video files
+    
     video_file = request.files.get('video')
     audio_file = request.files.get('audio')
 
     #makes sure both are stored or errors out
     if not video_file or not audio_file:
         return "Both video and audio files are required", 400
+    
+
 
     #save and capture the video
     video_path = "temp_video.avi"
     video_file.save(video_path)
-    video_capture = cv2.VideoCapture(video_path)
+    
+
+    #convert video to raw video
+    raw_video = "raw_input.avi"
+
+    subprocess.run([
+    "ffmpeg", "-y", "-i", video_path,
+    "-pix_fmt", "bgr24", "-vcodec", "rawvideo",
+    "-f", "avi", "-vtag", "DIB", raw_video
+    ], check=True)
+
+    if not os.path.exists(raw_video):
+        return "FFmpeg FAILED — raw video was not created. Check the console output."
+
+
+    video_capture = cv2.VideoCapture(raw_video, cv2.CAP_FFMPEG)
+    video_capture.set(cv2.CAP_PROP_CONVERT_RGB, 0)
 
     #make sure the video is captured
     if not video_capture.isOpened():
         return "Video could not be opened"
+    
+
     
     #get the data stream of the audio file
     audio_data = audio_file.read()
@@ -104,13 +158,19 @@ def encode():
     fernet = Fernet(key)
     encrypted_audio = fernet.encrypt(audio_data)
 
+    print("Original:", list(encrypted_audio[:50]))
+
+
     #get the length of the audio later for decrypting and store it as the first 32 bits
+    
     audio_length = len(encrypted_audio)
     audio_length_bits = format(audio_length, '032b')
 
-    #convert the audio data into binary
-    binary_audio = audio_length_bits + ''.join(format(byte,'08b') for byte in encrypted_audio)
 
+    #convert the audio data into binary
+
+    binary_audio_data = ''.join(format(byte,'08b') for byte in encrypted_audio)
+    binary_audio = audio_length_bits + binary_audio_data
     counter = 0
     total_bits = len(binary_audio)
 
@@ -119,7 +179,7 @@ def encode():
     fps = video_capture.get(cv2.CAP_PROP_FPS)
     width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    fourcc = 0
     out_video = cv2.VideoWriter('static/output.avi',fourcc,fps,(width,height))
 
     #read the frames of the video
@@ -131,10 +191,10 @@ def encode():
             break
 
         if counter < total_bits:
-            flat_frame = frame.flatten()
+            flat_frame = frame.flatten(order="C")
             for i in range(len(flat_frame)):
                 if counter < total_bits:
-                    flat_frame[i] = (flat_frame[i] & numpy.uint8(254)) | int(binary_audio[counter])
+                    flat_frame[i] = (flat_frame[i] & 0b11111110) | int(binary_audio[counter])
                     counter += 1
             new_frame = flat_frame.reshape(frame.shape)
         else:
@@ -142,11 +202,12 @@ def encode():
 
         out_video.write(new_frame)
 
-
+    
         
     video_capture.release()
     out_video.release()
     os.remove(video_path)
+    os.remove(raw_video)
 
 
 
