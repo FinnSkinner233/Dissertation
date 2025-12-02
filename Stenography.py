@@ -2,7 +2,6 @@ from flask import Flask, request, redirect, render_template, url_for
 from cryptography.fernet import Fernet
 import cv2
 import os
-import numpy
 import subprocess
 
 app = Flask(__name__)
@@ -22,7 +21,7 @@ def decode():
 
     #check to make sure that the video is stored
     if not video_file:
-        return "A video file is requiered", 400
+        return "A video file is requiered"
     
     #save and capture the video
     video_path = "temp_video.avi"
@@ -42,7 +41,7 @@ def decode():
 
     ret, frame = video_capture.read()
     if not ret:
-        return "No frames WOMP WOMP"
+        return "The Video dose not contain frames"
         
     flat_frame = frame.flatten(order="C")
     lsb_value = (flat_frame & 1)
@@ -87,8 +86,6 @@ def decode():
     video_capture.release()
     os.remove(video_path)
 
-    print("Decoded :", list(audio_bytes[:50]))
-
     furnet = Fernet(key)
     print ("check")
     decrypted_audio_data = furnet.decrypt(bytes(audio_bytes))
@@ -114,7 +111,7 @@ def encode():
 
     #makes sure both are stored or errors out
     if not video_file or not audio_file:
-        return "Both video and audio files are required", 400
+        return "Both video and audio files are required"
     
 
 
@@ -131,6 +128,13 @@ def encode():
         return "Video could not be opened"
     
 
+    #get the audio from the video
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-i", video_path,
+        "-vn", "-c:a",
+        "libmp3lame", "temp_audio.mp3",
+    ],check=True)
     
     #get the data stream of the audio file
     audio_data = audio_file.read()
@@ -138,8 +142,6 @@ def encode():
     #encrypt the data
     fernet = Fernet(key)
     encrypted_audio = fernet.encrypt(audio_data)
-
-    print("Original:", list(encrypted_audio[:50]))
 
 
     #get the length of the audio later for decrypting and store it as the first 32 bits
@@ -171,13 +173,13 @@ def encode():
         ret, frame = video_capture.read()
         if not ret:
             break
-
         if counter < total_bits:
             flat_frame = frame.flatten(order="C")
             for i in range(len(flat_frame)):
-                if counter < total_bits:
-                    flat_frame[i] = (flat_frame[i] & 0b11111110) | int(binary_audio[counter])
-                    counter += 1
+                if counter >= total_bits:
+                    break
+                flat_frame[i] = (flat_frame[i] & 0b11111110) | int(binary_audio[counter])
+                counter += 1
             new_frame = flat_frame.reshape(frame.shape)
         else:
             new_frame = frame                
@@ -189,6 +191,17 @@ def encode():
     video_capture.release()
     out_video.release()
     os.remove(video_path)
+
+    
+
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-i", "static/output.avi",
+        "-i", "temp_audio.mp3",
+        "-c:v", "copy",
+        "-c:a", "copy",
+        "static/output_with_audio.avi"
+    ],check = True)
 
 
 
