@@ -1,16 +1,30 @@
 <!DOCTYPE html>
 <html>
-<head>LSB Video display</head>
+<title>
+<head>LSB Video display
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+</title>
 <body>
     <div id="Container">
-        <a href="/static/output_with_audio.avi" downlaod>
+        <a href="/download">
             <button>Download Video</button>
         </a>
         <a href="/">
             <button>Back</button>
         </a>
+        <br>
+        <div class= "h1"></class>
+        <br>
+        <div id = "Quality Metrics">
+            <h3>Quality Metrics</h3><br>
+            <p id = "quality_metrics_display" onlclick = "window.locaiton.href='/quality_metrics'">Metrics</p>
+        </div>
+
 
     </div>
+
+<script src="{{ url_for('static', filename='video_script.js') }}"></script>
 </body>
 
 </html>
