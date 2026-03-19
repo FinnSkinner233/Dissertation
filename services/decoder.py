@@ -1,10 +1,8 @@
 import math
-import random
 from cryptography.fernet import Fernet
 import cv2
 import os
 from skimage.metrics import structural_similarity as ssim
-import numpy as np
 import hashlib
 import states
 from services.steg_metrics import claculate_correlation
@@ -36,17 +34,16 @@ def run_decoding_process(video_path):
         
     flat_frame = frame.flatten(order="C")
     lsb_value = (flat_frame & 1)
-    header_bits.extend(int(b) for b in lsb_value[:32])
+    header_bits.extend(int(y) for y in lsb_value[:32])
 
     #get the rest of the relevant bits from the frame
 
-    audio_data_length = 0
-    bit_string = ''.join(str(b) for b in header_bits)
+    bit_string = ''.join(str(y) for y in header_bits)
     audio_data_length = int(bit_string, 2)
     total_bits_needed = audio_data_length * 8
 
     #extract the order of the shuffled bit sections
-    bit_order = [int(b) for b in lsb_value[32:56]]
+    bit_order = [int(y) for y in lsb_value[32:56]]
     section_order = []
     for i in range(8):
         section_bits = ''.join(str(bit_order[i*3 + j])for j in range(3))
@@ -55,7 +52,7 @@ def run_decoding_process(video_path):
     
 
     # extract the rest of the bits for the main body of audio
-    payload_bits = [int(b) for b in lsb_value[56:]]
+    payload_bits = [int(y) for y in lsb_value[56:]]
 
     #extract the rest of the bits based on the total_bits_needed
 
@@ -65,7 +62,7 @@ def run_decoding_process(video_path):
             break
         flat_frame = frame.flatten(order="C")
         lsb_value = (flat_frame & 1)
-        payload_bits.extend(int(b) for b in lsb_value)
+        payload_bits.extend(int(y) for y in lsb_value)
 
     #trim to the amount of bits needed
     payload_bits = payload_bits[:total_bits_needed]
