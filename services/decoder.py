@@ -12,11 +12,11 @@ def run_decoding_process(video_path):
         states.decode_progress = 0
     video_capture = cv2.VideoCapture(video_path)
 
-    if states.key is None:
-        print("No encryption key avalibale")
-        with states.progress_lock:
-            states.decode_progress = 100
-        return
+    # if states.key is None:
+    #     print("No encryption key avalibale")
+    #     with states.progress_lock:
+    #         states.decode_progress = 100
+    #     return
 
     #make sure the video is captured
     if not video_capture.isOpened():
@@ -39,7 +39,7 @@ def run_decoding_process(video_path):
     #get the rest of the relevant bits from the frame
 
     bit_string = ''.join(str(y) for y in header_bits)
-    audio_data_length = int(bit_string, 2)
+    audio_data_length = states.audio_data_length
     total_bits_needed = audio_data_length * 8
 
     #extract the order of the shuffled bit sections
@@ -104,18 +104,21 @@ def run_decoding_process(video_path):
     video_capture.release()
     os.remove(video_path)
 
-    encrypted_extracted = bytes(audio_bytes)
-    decode_hash = hashlib.sha256(encrypted_extracted).hexdigest()
+    extracted_audio = bytes(audio_bytes)
+
+    print(f"Original audio size: {len(states.original_audio)} bytes")
+    print(f"Extracted audio size: {len(extracted_audio)} bytes")
+
+    decode_hash = hashlib.sha256(extracted_audio).hexdigest()
     states.audio_metrics.update({'decode_hash' : decode_hash})
 
 
-    furnet = Fernet(states.key)
-    print ("check")
-    decrypted_audio_data = furnet.decrypt(bytes(audio_bytes))
+    #furnet = Fernet(states.key)
+    #decrypted_audio_data = furnet.decrypt(bytes(audio_bytes))
 
     #get pearsons correlation coefficient
-    if 'original_audio' in states.audio_metrics:
-        correlation_coefficent, bit_accuracy = claculate_correlation(states.audio_metrics['original_audio'], decrypted_audio_data)
+    if states.original_audio is not None:
+        correlation_coefficent, bit_accuracy = claculate_correlation(states.original_audio, extracted_audio)
 
         #add the values to the audio_metrics
         states.audio_metrics.update({
@@ -129,7 +132,7 @@ def run_decoding_process(video_path):
     audio_output = "static/decrypted.mp3"
 
     with open (audio_output, 'wb') as f:
-        f.write(decrypted_audio_data)
+        f.write(extracted_audio)
 
     with states.progress_lock:
         states.decode_progress = 100

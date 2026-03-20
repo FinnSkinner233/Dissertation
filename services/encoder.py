@@ -50,26 +50,26 @@ def run_encoding_process(video_path, audio_path):
     with open(audio_path, "rb") as f:
         audio_data = f.read()
 
-    states.audio_metrics.update({'original_audio': audio_data})
+    states.original_audio = audio_data
 
 
     #encrypt the data
-    fernet = Fernet(states.key)
-    encrypted_audio = fernet.encrypt(audio_data)
+    #fernet = Fernet(states.key)
+    #encrypted_audio = fernet.encrypt(audio_data)
 
-    audio_data_hash = hashlib.sha256(encrypted_audio).hexdigest()
+    audio_data_hash = hashlib.sha256(audio_data).hexdigest()
     states.audio_metrics.update({'encoded_hash' : audio_data_hash})
 
 
     #get the length of the audio later for decrypting and store it as the first 32 bits
-    
-    audio_length = len(encrypted_audio)
+    audio_length = len(audio_data)
     audio_length_bits = format(audio_length, '032b')
 
+    states.audio_data_length = audio_length
 
     #convert the audio data into binary
 
-    binary_audio_data = ''.join(format(byte,'08b') for byte in encrypted_audio)
+    binary_audio_data = ''.join(format(byte,'08b') for byte in audio_data)
     binary_audio = audio_length_bits + binary_audio_data
     counter = 0
     total_bits = len(binary_audio)
@@ -107,7 +107,7 @@ def run_encoding_process(video_path, audio_path):
     fps = video_capture.get(cv2.CAP_PROP_FPS)
     width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fourcc = cv2.VideoWriter_fourcc(*'FFV1')
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     out_video = cv2.VideoWriter('static/output.avi',fourcc,fps,(width,height))
 
     #calculate payload capacity (bits per pixle) for quality metrics

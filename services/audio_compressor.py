@@ -26,14 +26,16 @@ def embed_compressed_audio(compressed_audio_bytes, audio_file):
 
     compressed_length = len(compressed_audio_bytes) ##get the length of the data to be stored
     compressed_length = format(compressed_length, '032b') ##convert the length of the bits to the first 32 bits
-    binary_audio_data = ''.join(format((byte,'08b') for byte in audio_bytes))
+    binary_audio_data = ''.join(format(byte,'08b') for byte in compressed_audio_bytes)
     audio_data_stored = compressed_length + binary_audio_data
 
     counter = 0
     total_bits = len(audio_data_stored)
 
     for i in range (len(audio_bytes)):
-        audio_bytes[i] = (audio_bytes[i] & 0b11111110 | int(total_bits[counter]))
+        if counter >= total_bits:
+            break
+        audio_bytes[i] = (audio_bytes[i] & 0b11111110) | int(audio_data_stored[counter])
         counter += 1
 
 
@@ -62,7 +64,7 @@ def extract_compressed_audio(extracted_audio):
     total_bits_needed = audio_data_length * 8
 
     #extract the rest of the bits for the main body of the audio
-    payload_bits = lsb_value[32:total_bits_needed]
+    payload_bits = lsb_value[32: 32 + total_bits_needed]
 
     #convert the bits back into bytes
     compressed_bytes = bytearray()

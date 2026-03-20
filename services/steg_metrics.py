@@ -38,10 +38,22 @@ def claculate_correlation(original_audio, decrypted_audio):
     original_array = np.array(list(original_audio))
     decrypted_array = np.array(list(decrypted_audio))
 
+    if len(original_array) == 0 or len(decrypted_array) == 0:
+        print("one or both of the arrays are empty")
+        return 0.0, 0.0
+
     #make sure the arrays are both the same length for the comparison
     smaller_array = min(len(original_array), len(decrypted_array))
     original_array = original_array[:smaller_array]
     decrypted_array = decrypted_array[:smaller_array]
+
+    if smaller_array < 2:
+        print("Array too small for correlation")
+        return 0.0, 0.0
+    
+    if np.std(original_array) == 0 or np.std(decrypted_array) ==0:
+        print ("The arrays are the same")
+        return 0.0, 0.0
 
     #claculate the coefficent
     correlation_coefficent = np.corrcoef(original_array, decrypted_array)[0,1]

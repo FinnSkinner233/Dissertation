@@ -9,7 +9,9 @@ bp = Blueprint('encode',__name__)
 @bp.route('/encode', methods = ['POST'])
 def encode():
 
-    states.key  = Fernet.generate_key()
+    ##states.key  = Fernet.generate_key()
+    
+    
     video_file = request.files.get('video')
     audio_file = request.files.get('audio')
 
