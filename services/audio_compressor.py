@@ -1,46 +1,4 @@
 import subprocess
-import numpy as np
-import os
-
-#Incorperate a halftone based compression
-#This is to allow the audio data to be sotred inside itself to then later be extracted for recovery
-
-def convert_to_pcm(audio_bytes, temp_name ="temp_input"):
-    with open(f"{temp_name}.mp3", "wb") as f:
-        f.write(audio_bytes)
-    
-    subprocess.run([
-        "ffmpeg", "-y",
-        "-i", f"{temp_name}.mp3",
-        "-f", "s16le",
-        "-acodec", "pcm_s16le",
-        "-ar", "44100",
-        "-ac", "1",
-        f"{temp_name}_pcm.raw"
-    ])
-    with open (f"{temp_name}_pcm.raw", "rb") as f:
-        raw_bytes = f.read()
-
-    sample = np.frombuffer(raw_bytes, dtype=np.int16)
-    return sample
-
-def apply_halftone_compression(audio_samples):
-    #get a sample rate to show the overall representation of the audio data
-
-    samples = audio_samples[::4]
-
-    reduced_sample_size = (samples/256).astype(np.int8)
-
-    return reduced_sample_size
-
-def halftone_to_bytes(halftone_samples):
-    #convert the halftone samples to bytes for embedding during LSB
-    return halftone_samples.astype(np.int8).tobytes()
-
-def bytes_to_halftone(halftone_bytes):
-    #convert the extracted bytes back into the halftone sample
-    return np.frombuffer(halftone_bytes, dtype=np.int8)
-    
 
 
 def compress_audio(audio_file):

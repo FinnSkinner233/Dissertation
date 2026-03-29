@@ -4,7 +4,7 @@ import os
 import hashlib
 import states
 from services.steg_metrics import claculate_correlation
-from services.audio_compressor import extract_compressed_audio, convert_to_pcm
+from services.audio_compressor import extract_compressed_audio
 from services.restore_audio import run_random_forest
 
 def run_decoding_process(video_path):
@@ -124,9 +124,9 @@ def run_decoding_process(video_path):
 
     correlation_coefficent, bit_accuracy = claculate_correlation(states.original_audio, extracted_audio)
 
-    original_pcm = convert_to_pcm(states.original_audio)
 
-    restored_correclation_coefficeny, restored_bit_accuracy = claculate_correlation(list(original_pcm), restored_audio)
+
+    restored_correclation_coefficeny, restored_bit_accuracy = claculate_correlation(states.original_audio, restored_audio)
     
 
     #add the values to the audio_metrics

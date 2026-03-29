@@ -6,7 +6,7 @@ import subprocess
 from skimage.metrics import structural_similarity as ssim
 import hashlib
 import states
-from services.audio_compressor import convert_to_pcm, apply_halftone_compression, halftone_to_bytes, embed_compressed_audio
+from services.audio_compressor import compress_audio, embed_compressed_audio
 from services.steg_metrics import calculate_mse, claculate_psnr, calculate_ssim
 
 
@@ -53,13 +53,10 @@ def run_encoding_process(video_path, audio_path):
 
     
     
-    pcm_samples = convert_to_pcm(audio_data)
-    halftone_samples = apply_halftone_compression(pcm_samples)
-    halftone_bytes = halftone_to_bytes(halftone_samples)
-    audio_data = embed_compressed_audio(halftone_bytes, audio_data)
+    compressed_audio_data = compress_audio
+    audio_data = embed_compressed_audio(compressed_audio_data, audio_data)
 
     states.original_audio = audio_data
-    states.original_pcm = list(pcm_samples)
 
     
 
