@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify, send_file
 from threading import Thread
-from cryptography.fernet import Fernet
 import states
 from services.encoder import run_encoding_process
 

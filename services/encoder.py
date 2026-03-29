@@ -1,14 +1,15 @@
 import math
 import random
-from cryptography.fernet import Fernet
 import cv2
 import os
 import subprocess
 from skimage.metrics import structural_similarity as ssim
-import numpy as np
 import hashlib
 import states
+from services.audio_compressor import convert_to_pcm, apply_halftone_compression, halftone_to_bytes, embed_compressed_audio
 from services.steg_metrics import calculate_mse, claculate_psnr, calculate_ssim
+
+
 
 def run_encoding_process(video_path, audio_path):
     states.progress = 0
@@ -50,8 +51,17 @@ def run_encoding_process(video_path, audio_path):
     with open(audio_path, "rb") as f:
         audio_data = f.read()
 
-    states.original_audio = audio_data
+    
+    
+    pcm_samples = convert_to_pcm(audio_data)
+    halftone_samples = apply_halftone_compression(pcm_samples)
+    halftone_bytes = halftone_to_bytes(halftone_samples)
+    audio_data = embed_compressed_audio(halftone_bytes, audio_data)
 
+    states.original_audio = audio_data
+    states.original_pcm = list(pcm_samples)
+
+    
 
     #encrypt the data
     #fernet = Fernet(states.key)
@@ -207,20 +217,12 @@ def run_encoding_process(video_path, audio_path):
     with states.progress_lock:
         states.progress = 99
     
-    try:
-        if os.path.exists("temp_audio.mp3"):
-            os.remove("temp_audio.mp3")
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
-        if os.path.exists("static/output.avi"):
-            os.remove("static/output.avi")
-    except Exception as e:
-        print (f"Cleanup error: {e}")
-
-    if os.path.exists('static/output_with_audio.avi'):
-        print(f"File created: {os.path.getsize('static/output_with_audio.avi')} bytes")
-    else:
-        print("File NOT created!")
+    if os.path.exists("temp_audio.mp3"):
+        os.remove("temp_audio.mp3")
+    if os.path.exists(audio_path):
+        os.remove(audio_path)
+    if os.path.exists("static/output.avi"):
+        os.remove("static/output.avi")
         
 
     with states.progress_lock:

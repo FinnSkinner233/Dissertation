@@ -1,11 +1,11 @@
 import math
-from cryptography.fernet import Fernet
 import cv2
 import os
-from skimage.metrics import structural_similarity as ssim
 import hashlib
 import states
 from services.steg_metrics import claculate_correlation
+from services.audio_compressor import extract_compressed_audio, convert_to_pcm
+from services.restore_audio import run_random_forest
 
 def run_decoding_process(video_path):
     with states.progress_lock:
@@ -105,9 +105,13 @@ def run_decoding_process(video_path):
     os.remove(video_path)
 
     extracted_audio = bytes(audio_bytes)
+    extracted_compressed_audio = extract_compressed_audio(extracted_audio)
 
-    print(f"Original audio size: {len(states.original_audio)} bytes")
-    print(f"Extracted audio size: {len(extracted_audio)} bytes")
+    restored_audio = run_random_forest(
+        corrupted_audio=extracted_audio,
+        reference_audio=extracted_compressed_audio,
+        original_audio=states.original_audio
+        )
 
     decode_hash = hashlib.sha256(extracted_audio).hexdigest()
     states.audio_metrics.update({'decode_hash' : decode_hash})
@@ -117,22 +121,39 @@ def run_decoding_process(video_path):
     #decrypted_audio_data = furnet.decrypt(bytes(audio_bytes))
 
     #get pearsons correlation coefficient
-    if states.original_audio is not None:
-        correlation_coefficent, bit_accuracy = claculate_correlation(states.original_audio, extracted_audio)
 
-        #add the values to the audio_metrics
-        states.audio_metrics.update({
-            'correlation_coefficent': float(correlation_coefficent),
-            'bit_rate_error': float(bit_accuracy)
-        })
+    correlation_coefficent, bit_accuracy = claculate_correlation(states.original_audio, extracted_audio)
 
-        states.audio_metrics.pop('original_audio', None)
+    original_pcm = convert_to_pcm(states.original_audio)
+
+    restored_correclation_coefficeny, restored_bit_accuracy = claculate_correlation(list(original_pcm), restored_audio)
+    
+
+    #add the values to the audio_metrics
+    states.audio_metrics.update({
+        'correlation_coefficent': float(correlation_coefficent),
+        'bit_rate_error': float(bit_accuracy),
+        'restored_correclation_coefficeny': float(restored_correclation_coefficeny),
+        'restored_bit_accuracy': float(restored_bit_accuracy)
+    })
+
+    states.audio_metrics.pop('original_audio', None)
 
 
     audio_output = "static/decrypted.mp3"
 
+
+
     with open (audio_output, 'wb') as f:
         f.write(extracted_audio)
+
+
+    if os.path.exists("compressed_audio.opus"):
+        os.remove("compressed_audio.opus")
+    if os.path.exists("extracted_compressed_audio.opus"):
+        os.remove("extracted_compressed_audio.opus")
+    if os.path.exists("modified_audio.mp3"):
+        os.remove("modified_audio.mp3")
 
     with states.progress_lock:
         states.decode_progress = 100

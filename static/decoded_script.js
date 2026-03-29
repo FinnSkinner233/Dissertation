@@ -8,6 +8,9 @@ function loadAudioMetrics(){
                 <p>Hash of audio after encoding: ${data.audio_metrics.decode_hash}</p>
                 <p>Pearsons Correlation Coefficient: ${data.audio_metrics.correlation_coefficent}</p>
                 <p>Bit rate error: ${data.audio_metrics.bit_rate_error}
+                <p>Restored Inexes : ${data.audio_metrics.rf_restored_indexes}</p>
+                <p>Restored Pearsons Correlation Coefficient : ${data.audio_metrics.restored_correclation_coefficeny}</p>
+                <p>Restored Bit Rate Error : ${data.audio_metrics.restored_bit_accuracy}</p>
                 `;
             }else{
                 setTimeout(loadAudioMetrics, 1000)
