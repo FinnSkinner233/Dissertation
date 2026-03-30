@@ -53,7 +53,7 @@ def run_encoding_process(video_path, audio_path):
 
     
     
-    compressed_audio_data = compress_audio
+    compressed_audio_data = compress_audio("temp_audio.mp3")
     audio_data = embed_compressed_audio(compressed_audio_data, audio_data)
 
     states.original_audio = audio_data
@@ -114,7 +114,7 @@ def run_encoding_process(video_path, audio_path):
     fps = video_capture.get(cv2.CAP_PROP_FPS)
     width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    fourcc = cv2.VideoWriter_fourcc(*'HFYU')
     out_video = cv2.VideoWriter('static/output.avi',fourcc,fps,(width,height))
 
     #calculate payload capacity (bits per pixle) for quality metrics

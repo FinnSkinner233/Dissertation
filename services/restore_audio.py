@@ -1,6 +1,5 @@
 import states
 from sklearn.ensemble import RandomForestClassifier
-from services.audio_compressor import convert_to_pcm, bytes_to_halftone
 
 #for the random forest to work I will need the corrupted audio positions, the corrupted audio and the reference audio
 
@@ -30,13 +29,6 @@ def get_surronding_values(audio_bytes, index):
         else:
             surronding_bits.append(0.0)
 
-    halftone_index = index // 4
-    for i in range(-number_of_bits, number_of_bits + 1):
-        surronding_bit = halftone_index + i
-        if 0 <= surronding_bit < len(audio_bytes):
-            surronding_bits.append(float(audio_bytes[surronding_bit]))
-        else:
-            surronding_bits.append(0.0)
 
     surronding_bits.append(float(index))
     return surronding_bits
@@ -65,12 +57,12 @@ def train_random_forest(corrupted_audio, reference_audio, original_audio, corrup
 
     return classifier
 
-def restore_audio(corrupted_pcm, halftone_samples, corrupted_indexes, classifier):
-    restored_audio = list(corrupted_pcm)
+def restore_audio(corrupted_audio, reference_audio, corrupted_indexes, classifier):
+    restored_audio = bytearray(corrupted_audio)
 
     x_predict = []
     for i in corrupted_indexes:
-        surronding_bits = get_surronding_values(corrupted_pcm, halftone_samples, i)
+        surronding_bits = get_surronding_values(reference_audio, i)
         x_predict.append(surronding_bits)
 
     predictions = classifier.predict(x_predict)
